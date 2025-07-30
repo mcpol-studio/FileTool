@@ -1,17 +1,6 @@
-name: FileOperations
-description: 一个简单的文件发送、删除、移动、复制和查看文件夹内容插件
-version: 1.2.0
-author: Chris
-
-supported_platforms:
-  - qq
-  - wechat
-  - telegram
-  - discord
-  - lark
-  - dingtalk
-  - wecom
-  - slack
-  - weixin_official_account
-  - qqofficial
-  - qqofficial_webhook
+name: "astrbot_plugin_file"
+desc: "一个简单的文件发送、上传、删除和查看文件夹内容插件"
+help: "指令：/发送 /查看 /删除 ..."
+version: "v1.2.0"
+author: "Chris"
+repo: "https://github.com/Chris95743/astrbot_plugin_file"
