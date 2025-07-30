@@ -1,8 +1,0 @@
-name: file_forward
-author: Mcpol
-description: 群文件上传转发插件
-version: 1.0.0
-repository: https://github.com/mcpol-studio/file_forward_plugin
-tags:
-  - file
-  - forward 
