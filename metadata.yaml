@@ -1,0 +1,16 @@
+name: FileForwarder
+description: 转发用户上传的文件到指定QQ
+version: 0.0.1
+author: YourName
+supported_platforms:
+  - qq
+  - wechat
+  - telegram
+  - discord
+  - lark
+  - dingtalk
+  - wecom
+  - slack
+  - weixin_official_account
+  - qqofficial
+  - qqofficial_webhook
