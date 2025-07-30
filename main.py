@@ -2,6 +2,8 @@
 
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api import AstrBotConfig
+from astrbot.core.message.message_event_result import MessageChain
+from astrbot.core.message.components import File, Plain
 from astrbot.api.star import Context, Star, register
 import os
 import shutil
@@ -14,9 +16,9 @@ import uuid
 # 注册插件的装饰器
 @register("FileOperations", "Chris", "一个简单的文件发送、删除、移动、复制和查看文件夹内容插件", "1.2.0")
 class FileSenderPlugin(Star):
-    def __init__(self, context: Context, config: AstrBotConfig):
+    def __init__(self, context: Context):
         super().__init__(context)
-        self.base_path = config.get('FileBasePath', '/default/path')  # 配置文件中的基础路径
+        self.base_path = context.config.get('FileBasePath', '/default/path')  # 配置文件中的基础路径
         self.user_waiting = {}  # 等待上传文件的用户
 
     # 根据路径发送文件
