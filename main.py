@@ -239,27 +239,6 @@ class FileSenderPlugin(Star):
                         yield event.plain_result(f"处理文件 {file_name} 失败: {e}")
                         logger.error(f"处理文件 {file_name} 失败: {e}")
                 break
-                                    while True:
-                                        chunk = await response.content.read(8192)
-                                        if not chunk:
-                                            break
-                                        f.write(chunk)
-                        await self.context.send_message(
-                            session=f"qq:{MessageType.GROUP_MESSAGE.value}:{self.target_group_id}",
-                            message_chain=[Plain(text=f"收到文件：{file_name}，已下载到本地。正在转发..."), File(name=file_name, file=local_file_path)]
-                        )
-                        yield event.plain_result(f"文件 {file_name} 已转发到群聊 {self.target_group_id}。")
-                    except Exception as e:
-                        yield event.plain_result(f"处理文件 {file_name} 失败: {e}")
-                break
-
-
-        # 确保目录存在
-        
-        # 确保目录存在
-        target_dir = os.path.join(self.base_path, file_path)
-        if not os.path.exists(target_dir):
-            try:
                 os.makedirs(target_dir)
             except Exception as e:
                 yield event.plain_result(f"创建目录失败: {str(e)}")
