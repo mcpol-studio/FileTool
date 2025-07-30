@@ -1,5 +1,7 @@
 from astrbot.api.message_components import *
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event import AstrMessageEvent, MessageEventResult
+from astrbot.core.star.register.star_handler import register_event_message_type
+from astrbot.core.star.filter.event_message_type import EventMessageType
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.star import Context, Star, register
 from astrbot.core.message.components import File, Plain
@@ -188,7 +190,7 @@ class FileSenderPlugin(Star):
     async def upload_file(self, event: AstrMessageEvent, file_path: str, file_content: bytes, file_name: str):
         full_file_path = os.path.join(self.base_path, file_path, file_name)
 
-    @filter(priority=100)
+    @register_event_message_type(EventMessageType.ALL)
     async def on_message(self, event: AstrMessageEvent):
         for component in event.get_messages():
             if isinstance(component, File):
