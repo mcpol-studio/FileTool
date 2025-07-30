@@ -192,7 +192,8 @@ class FileSenderPlugin(Star):
         full_file_path = os.path.join(self.base_path, file_path, file_name)
 
     @register_event_message_type(EventMessageType.ALL)
-    async def on_message(self, event: AstrMessageEvent):
+    async def on_message(self, event: AstrMessageEvent, *args, **kwargs):
+        logger.info(f"on_message received args: {args}, kwargs: {kwargs}")
         for component in event.get_messages():
             if isinstance(component, File):
                 file_url = component.url
