@@ -44,32 +44,7 @@
 
 插件默认将文件上传信息转发到群号 `1035079001`。
 
-### 配置文件
-
-插件支持通过 `config.yaml` 文件进行配置：
-
-```yaml
-# 目标转发群号
-target_group_id: "1035079001"
-
-# 是否在源群发送确认消息
-send_confirm_message: true
-
-# 是否启用详细日志
-enable_debug_log: false
-```
-
-### 配置项说明
-
-- `target_group_id`: 目标转发群号，默认为 "1035079001"
-- `send_confirm_message`: 是否在源群发送确认消息，默认为 true
-- `enable_debug_log`: 是否启用详细日志，默认为 false
-
-### 修改配置
-
-1. 编辑 `config.yaml` 文件
-2. 保存文件
-3. 在AstrBot WebUI中重载插件
+如需修改目标群号，请编辑 `main.py` 文件中的 `self.target_group_id` 变量。
 
 ## 注意事项
 

@@ -1,39 +1,15 @@
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 from astrbot.api.message_components import File
-import re
 import traceback
-import yaml
-import os
 
 @register("file_forward", "Mcpol", "群文件上传转发插件", "1.0.0", "https://github.com/your-repo")
 class FileForwardPlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        # 加载配置
-        self.config = self.load_config()
-        self.target_group_id = self.config.get("target_group_id", "1035079001")
-        self.send_confirm_message = self.config.get("send_confirm_message", True)
-        self.enable_debug_log = self.config.get("enable_debug_log", False)
+        self.target_group_id = "1035079001"
         logger.info("文件转发插件已加载")
-        if self.enable_debug_log:
-            logger.info(f"目标群号: {self.target_group_id}")
-            logger.info(f"发送确认消息: {self.send_confirm_message}")
-    
-    def load_config(self):
-        """加载配置文件"""
-        config_path = os.path.join(os.path.dirname(__file__), "config.yaml")
-        try:
-            if os.path.exists(config_path):
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    return yaml.safe_load(f) or {}
-            else:
-                logger.warning("配置文件不存在，使用默认配置")
-                return {}
-        except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
-            return {}
 
     @filter.message()
     async def handle_file_upload(self, event: AstrMessageEvent):
@@ -53,9 +29,6 @@ class FileForwardPlugin(Star):
             if not file_components:
                 return
             
-            if self.enable_debug_log:
-                logger.info(f"检测到文件上传事件，群号: {event.group_id}, 发送者: {event.get_sender_id()}")
-            
             # 获取群号
             group_id = event.group_id
             if not group_id:
@@ -64,7 +37,6 @@ class FileForwardPlugin(Star):
             
             # 获取发送者信息
             sender_qq = event.get_sender_id()
-            sender_name = event.get_sender_name()
             
             # 构建转发消息
             forward_message = f"群号：{group_id}\n触发人：{sender_qq}\n文件名："
@@ -87,10 +59,9 @@ class FileForwardPlugin(Star):
                 yield event.plain_result(forward_message, target_group_id=self.target_group_id)
                 logger.info(f"文件上传事件已转发到群 {self.target_group_id}")
                 
-                # 在源群发送确认消息（如果配置允许）
-                if self.send_confirm_message:
-                    confirm_msg = f"文件已转发到指定群聊\n群号：{group_id}\n触发人：{sender_qq}\n文件名：\n" + "\n".join(file_names)
-                    yield event.plain_result(confirm_msg)
+                # 在源群发送确认消息
+                confirm_msg = f"文件已转发到指定群聊\n群号：{group_id}\n触发人：{sender_qq}\n文件名：\n" + "\n".join(file_names)
+                yield event.plain_result(confirm_msg)
                 
             except Exception as e:
                 logger.error(f"转发文件消息失败: {e}")

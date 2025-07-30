@@ -1,3 +1,1 @@
-# 此插件使用AstrBot内置API，无需额外依赖
-# 如果需要配置文件功能，请确保系统已安装PyYAML
-# pip install PyYAML 
+# 此插件使用AstrBot内置API，无需额外依赖 
