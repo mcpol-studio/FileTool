@@ -1,47 +1,201 @@
 # main.py for file_forwarder plugin
 
-from astrbot.core.star import Star
-from astrbot.core.platform import AstrMessageEvent
-from astrbot.core.message import MessageChain, File, Plain
-from astrbot.core.star.star_tools import StarTools
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api import AstrBotConfig
+from astrbot.api.star import Context, Star, register
+import os
+import shutil
+import time
+import asyncio
+import aiohttp
+import uuid
 
-class FileForwarder(Star):
-    def __init__(self, context):
+# 创建配置对象
+# 注册插件的装饰器
+@register("FileOperations", "Chris", "一个简单的文件发送、删除、移动、复制和查看文件夹内容插件", "1.2.0")
+class FileSenderPlugin(Star):
+    def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
-        self.target_qq = "1035079001" # 目标QQ号
+        self.base_path = config.get('FileBasePath', '/default/path')  # 配置文件中的基础路径
+        self.user_waiting = {}  # 等待上传文件的用户
 
-    async def on_message(self, event: AstrMessageEvent):
-        # 避免循环转发，如果当前会话ID与目标QQ号相同，则不进行转发
-        if event.get_session_id() == str(self.target_qq):
+    # 根据路径发送文件
+    async def send_file(self, event: AstrMessageEvent, file_path: str):
+        full_file_path = os.path.join(self.base_path, file_path)
+
+        # 检查文件是否存在
+        if not os.path.exists(full_file_path):
+            yield event.plain_result(f"文件 {file_path} 不存在，请检查路径。")
             return
 
-        # 检查消息中是否包含文件组件
-        for component in event.message_obj.chain:
-            if isinstance(component, File):
-                file_name = component.name
-                file_path = await component.get_file() # 异步获取本地文件路径，确保文件被下载
-                file_url = component.url # 获取文件URL
+        # 检查文件是否为文件而非文件夹
+        if os.path.isdir(full_file_path):
+            yield event.plain_result(f"指定的路径是一个目录，而不是文件：{file_path}")
+            return
 
-                if not file_path: # 如果文件路径为空，尝试使用URL
-                    self.logger.warning(f"无法获取文件 {file_name} 的本地路径，尝试使用URL转发。")
-                    # 如果file_path为空，File组件会尝试从url下载，或者直接使用url
-                    forward_file_component = File(name=file_name, url=file_url)
+        # 检查文件大小（限制为2GB）
+        file_size = os.path.getsize(full_file_path)
+        if file_size == 0:
+            yield event.plain_result(f"文件 {file_path} 是空文件，无法发送。")
+            return
+        if file_size > 2 * 1024 * 1024 * 1024:  # 2GB
+            yield event.plain_result(f"文件 {file_path} 大小超过2GB限制，无法发送。")
+            return
+
+        # 获取文件名（不带路径）
+        file_name = os.path.basename(file_path)
+
+        # 检查文件是否可读
+        try:
+            with open(full_file_path, 'rb') as f:
+                f.read(1)  # 测试读取
+        except Exception as e:
+            yield event.plain_result(f"无法读取文件 {file_path}: {str(e)}")
+            return
+
+        # 发送文件
+        yield event.plain_result(f"开始发送文件 {file_name}...")
+        yield event.plain_result(f"文件路径: {full_file_path}")
+        yield event.plain_result(f"文件大小: {file_size / 1024:.2f} KB")
+        
+        try:
+            yield event.chain_result([File(name=file_name, file=full_file_path)])
+            yield event.plain_result(f"文件 {file_name} 已发送。")
+        except Exception as e:
+            yield event.plain_result(f"发送文件失败: {str(e)}")
+            yield event.plain_result("可能的原因:")
+            yield event.plain_result("1. 文件路径包含特殊字符")
+            yield event.plain_result("2. 文件大小超过平台限制")
+            yield event.plain_result("3. 文件类型不被支持")
+            yield event.plain_result("4. 机器人没有文件访问权限")
+
+    # 根据路径删除文件
+    async def delete_file(self, event: AstrMessageEvent, file_path: str):
+        full_file_path = os.path.join(self.base_path, file_path)
+
+        # 检查文件是否存在
+        if not os.path.exists(full_file_path):
+            yield event.plain_result(f"文件 {file_path} 不存在，请检查路径。")
+            return
+
+        # 检查文件是否为文件而非文件夹
+        if os.path.isdir(full_file_path):
+            yield event.plain_result(f"指定的路径是一个目录，而不是文件：{file_path}")
+            return
+
+        try:
+            # 删除文件
+            os.remove(full_file_path)
+            yield event.plain_result(f"文件 {file_path} 已成功删除。")
+        except Exception as e:
+            yield event.plain_result(f"删除文件时发生错误: {str(e)}")
+
+    # 根据路径删除目录
+    async def delete_directory(self, event: AstrMessageEvent, dir_path: str):
+        full_dir_path = os.path.join(self.base_path, dir_path)
+
+        # 检查目录是否存在
+        if not os.path.exists(full_dir_path):
+            yield event.plain_result(f"目录 {dir_path} 不存在，请检查路径。")
+            return
+
+        # 检查是否是目录
+        if not os.path.isdir(full_dir_path):
+            yield event.plain_result(f"指定路径 {dir_path} 不是一个目录。")
+            return
+
+        try:
+            # 删除目录及其中所有内容
+            shutil.rmtree(full_dir_path)
+            yield event.plain_result(f"目录 {dir_path} 已成功删除。")
+        except Exception as e:
+            yield event.plain_result(f"删除目录时发生错误: {str(e)}")
+
+    # 查看目录内容
+    async def list_files(self, event: AstrMessageEvent, dir_path: str):
+        full_dir_path = os.path.join(self.base_path, dir_path)
+
+        # 检查目录是否存在
+        if not os.path.exists(full_dir_path):
+            yield event.plain_result(f"目录 {dir_path} 不存在，请检查路径。")
+            return
+
+        # 检查是否是目录
+        if not os.path.isdir(full_dir_path):
+            yield event.plain_result(f"指定路径 {dir_path} 不是一个目录。")
+            return
+
+        # 获取目录内容
+        try:
+            files = os.listdir(full_dir_path)
+            if not files:
+                yield event.plain_result(f"目录 {dir_path} 是空的。")
+                return
+
+            # 格式化文件和文件夹输出
+            result = ""
+            for file in files:
+                full_path = os.path.join(full_dir_path, file)
+                if os.path.isdir(full_path):
+                    result += f"/{file}\n"  # 文件夹前加 '/'
                 else:
-                    forward_file_component = File(name=file_name, file_=file_path)
+                    result += f"{file}\n"  # 文件不加 '/'
 
-                # 构造转发消息
-                forward_message = MessageChain([
-                    Plain(f"收到文件: {file_name}\n"),
-                    forward_file_component # 转发文件
-                ])
+            yield event.plain_result(f"目录 {dir_path} 的内容：\n{result}")
+        except Exception as e:
+            yield event.plain_result(f"读取目录时发生错误: {str(e)}")
 
-                # 转发到目标QQ
-                await StarTools.send_message(
-                    platform="aiocqhttp", # 转发到aiocqhttp平台，icqq通常是go-cqhttp的实现
-                    session=str(self.target_qq),
-                    message_chain=forward_message
-                )
-                self.logger.info(f"文件 {file_name} 已转发到 {self.target_qq}")
-                return # 处理完文件后停止进一步处理
+    # 移动文件或目录
+    async def move(self, event: AstrMessageEvent, source_path: str, destination_path: str):
+        source_full_path = os.path.join(self.base_path, source_path)
+        destination_full_path = os.path.join(self.base_path, destination_path)
 
-        return # 如果没有文件，继续处理其他插件
+        # 检查源文件/目录是否存在
+        if not os.path.exists(source_full_path):
+            yield event.plain_result(f"源路径 {source_path} 不存在，请检查路径。")
+            return
+
+        try:
+            # 移动文件或目录
+            shutil.move(source_full_path, destination_full_path)
+            yield event.plain_result(f"文件/目录 {source_path} 已成功移动到 {destination_path}。")
+        except Exception as e:
+            yield event.plain_result(f"移动文件/目录时发生错误: {str(e)}")
+
+    # 复制文件或目录
+    async def copy(self, event: AstrMessageEvent, source_path: str, destination_path: str):
+        source_full_path = os.path.join(self.base_path, source_path)
+        destination_full_path = os.path.join(self.base_path, destination_path)
+
+        # 检查源文件/目录是否存在
+        if not os.path.exists(source_full_path):
+            yield event.plain_result(f"源路径 {source_path} 不存在，请检查路径。")
+            return
+
+        try:
+            # 复制文件或目录
+            if os.path.isdir(source_full_path):
+                shutil.copytree(source_full_path, destination_full_path)
+            else:
+                shutil.copy2(source_full_path, destination_full_path)
+            yield event.plain_result(f"文件/目录 {source_path} 已成功复制到 {destination_path}。")
+        except Exception as e:
+            yield event.plain_result(f"复制文件/目录时发生错误: {str(e)}")
+
+    # 处理文件上传到指定目录
+    async def upload_file(self, event: AstrMessageEvent, file_path: str, file_content: bytes, file_name: str):
+        full_file_path = os.path.join(self.base_path, file_path, file_name)
+        
+        # 确保目录存在
+        target_dir = os.path.join(self.base_path, file_path)
+        if not os.path.exists(target_dir):
+            try:
+                os.makedirs(target_dir)
+            except Exception as e:
+                yield event.plain_result(f"创建目录失败: {str(e)}")
+                return
+        
+        # 检查文件大小（限制为50MB）
+        file_size = len(file_content)
+        if file_size > 50 * 1024 * 1024:  # 50MB
+            yield event.plain_result(f"文件 {file_name} 大小超过50MB限制，无法上传。")

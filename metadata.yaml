@@ -1,7 +1,8 @@
-name: FileForwarder
-description: 转发用户上传的文件到指定QQ
-version: 0.0.1
-author: YourName
+name: FileOperations
+description: 一个简单的文件发送、删除、移动、复制和查看文件夹内容插件
+version: 1.2.0
+author: Chris
+
 supported_platforms:
   - qq
   - wechat
