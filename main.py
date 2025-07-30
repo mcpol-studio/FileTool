@@ -7,11 +7,11 @@ from astrbot.api.star import Context, Star, register
 from astrbot.core.message.components import File, Plain
 from astrbot.core.platform.message_type import MessageType
 import os
-import shutil
 import time
 import asyncio
-import aiohttp
 import uuid
+import aiohttp
+import shutil
 
 # 创建配置对象
 # 注册插件的装饰器
@@ -218,33 +218,59 @@ class FileSenderPlugin(Star):
                                     logger.warning(f"Could not get file URL for file_id: {file_id}")
                             except Exception as e:
                                 logger.error(f"Error forwarding file {file_name}: {e}")
-                            break # 找到文件后即可退出循环
-                file_url = component.url
-                file_name = component.name
-                # 转发文件
-                yield event.chain_result([File(name=file_name, url=file_url)])
-                if file_name:
-                    if file_url:
-                        logger.info(f"检测到文件，URL: {file_url}, 名称: {file_name}")
-                        source_path = file_url
-                    elif component.path:
-                        logger.info(f"检测到文件，本地路径: {component.path}, 名称: {file_name}")
-                        source_path = component.path
-                    else:
-                        logger.warning(f"文件 {file_name} 没有可用的 URL 或本地路径。")
-                        continue
+                        elif hasattr(component, 'url') and hasattr(component, 'name'):
+                            file_url = component.url
+                            file_name = component.name
+                            if file_name:
+                                if file_url:
+                                    logger.info(f"检测到文件，URL: {file_url}, 名称: {file_name}")
+                                    source_path = file_url
+                                elif component.path:
+                                    logger.info(f"检测到文件，本地路径: {component.path}, 名称: {file_name}")
+                                    source_path = component.path
+                                else:
+                                    logger.warning(f"文件 {file_name} 没有可用的 URL 或本地路径。")
+                                    continue
 
-                    try:
-                        # 获取当前消息的群组ID作为目标群组ID
-                        current_group_id = event.group_id
-                        if not current_group_id:
-                            logger.warning(f"无法获取当前消息的群组ID，跳过文件转发。")
-                            continue
+                                try:
+                                    # 获取当前消息的群组ID作为目标群组ID
+                                    current_group_id = event.group_id
+                                    if not current_group_id:
+                                        logger.warning(f"无法获取当前消息的群组ID，跳过文件转发。")
+                                        continue
 
-                        # 下载文件
-                        download_dir = os.path.join(self.base_path, "downloads")
-                        os.makedirs(download_dir, exist_ok=True)
-                        local_file_path = os.path.join(download_dir, file_name)
+                                    # 下载文件
+                                    download_dir = os.path.join(self.base_path, "downloads")
+                                    os.makedirs(download_dir, exist_ok=True)
+                                    local_file_path = os.path.join(download_dir, file_name)
+
+                                    # 检查文件是否已存在，如果存在则跳过下载
+                                    if os.path.exists(local_file_path):
+                                        logger.info(f"文件 {file_name} 已存在，跳过下载。")
+                                        continue
+                                        # 异步下载文件
+                                        async with aiohttp.ClientSession() as session:
+                                            async with session.get(source_path) as response:
+                                                response.raise_for_status() # 检查HTTP请求是否成功
+                                                with open(local_file_path, 'wb') as f:
+                                                    while True:
+                                                        chunk = await response.content.read(8192)
+                                                        if not chunk:
+                                                            break
+                                                        f.write(chunk)
+                                        logger.info(f"文件 {file_name} 下载完成：{local_file_path}")
+
+                                    # 转发文件
+                                    # 假设 context.send_file 可以直接转发本地文件路径
+                                    await context.send_file(current_group_id, local_file_path, file_name)
+                                    logger.info(f"成功转发文件：{file_name} 到群组 {current_group_id}")
+
+                                except Exception as e:
+                                    logger.error(f"处理文件 {file_name} 时发生错误：{e}")
+                                    # 清理可能已下载但转发失败的文件
+                                    if 'local_file_path' in locals() and os.path.exists(local_file_path):
+                                        os.remove(local_file_path)
+                                        logger.info(f"已删除未成功转发的文件：{local_file_path}")
 
                         if source_path.startswith("http"):
                             async with aiohttp.ClientSession() as session:
