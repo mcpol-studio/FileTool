@@ -1,0 +1,7 @@
+{
+    "directory_path": {
+        "description": "基础目录（作用不大，暂未实现，留个占位符）",
+        "type": "string",
+        "default": ""
+    }
+}

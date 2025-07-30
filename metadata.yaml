@@ -1,0 +1,6 @@
+name: "FileTool"
+desc: "自动文件转发插件 - 监听群文件上传并自动转发到指定群聊"
+help: "自动监听群文件上传事件，转发到指定群聊"
+version: "v1.0.0"
+author: "Mcpol"
+repo: "https://github.com/mcpol-studio/FileTool"
