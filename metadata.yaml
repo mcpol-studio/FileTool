@@ -1,6 +1,9 @@
-name: "astrbot_plugin_file"
-desc: "一个简单的文件发送、上传、删除和查看文件夹内容插件"
-help: "指令：/发送 /查看 /删除 ..."
-version: "v1.2.0"
-author: "Chris"
-repo: "https://github.com/Chris95743/astrbot_plugin_file"
+name: file_forward
+author: Mcpol
+description: 群文件上传转发插件 - 当有人上传群文件时，自动转发到指定群聊并发送通知
+version: 1.0.0
+repository: https://github.com/your-repo/file_forward_plugin
+tags:
+  - file
+  - forward
+  - notification 

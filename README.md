@@ -1,79 +1,85 @@
+# 群文件上传转发插件
 
-<div align="center">
+## 功能描述
 
-![:name](https://count.getloli.com/@astrbot_plugin_file?name=astrbot_plugin_file&theme=minecraft&padding=6&offset=0&align=top&scale=1&pixelated=1&darkmode=auto)
+这是一个AstrBot插件，用于监听群文件上传事件并自动转发到指定群聊。
 
-# astrbot_plugin_file
+## 主要功能
 
-_✨ [astrbot](https://github.com/AstrBotDevs/AstrBot) 文件操作 ✨_  
+- 监听所有群聊中的文件上传事件
+- 自动转发文件上传信息到指定群聊（1035079001）
+- 在源群发送确认消息
+- 记录详细的文件上传信息（群号、触发人、文件名）
 
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
-[![AstrBot](https://img.shields.io/badge/AstrBot-3.4%2B-orange.svg)](https://github.com/Soulter/AstrBot)
-[![GitHub](https://img.shields.io/badge/作者-Chris-blue)](https://github.com/Chris95743)
+## 消息格式
 
-</div>
-
-## 🤝 介绍
-
-- 一个简单的文件发送、上传、删除、移动、复制和查看文件夹内容插件，命令均默认开启管理员权限。
-
-## 📦 安装
-
-- 可以直接在astrbot的插件市场搜索astrbot_plugin_file，点击安装，耐心等待安装完成即可
-- 若是安装失败，可以尝试直接克隆源码：
-
-```bash
-# 克隆仓库到插件目录
-cd /AstrBot/data/plugins
-git clone https://github.com/Chris95743/astrbot_plugin_file
-
-# 控制台重启AstrBot
+### 转发到目标群的消息格式：
+```
+群号：xxxxxxx（上传文件的群聊）
+触发人：xxxxxxx（QQ号）
+文件名：
+文件名1
+文件名2
+...
 ```
 
-## ⌨️ 使用说明
-
-### 命令
-
-- 进行基本简单的文件操作，包括查看，上传，发送，删除（包括目录），移动，复制本地文件。
-- 当然，出于安全考虑，以上所有命令仅限管理员使用。
-- Windows用户可直接使用，如果您是docker用户，请提前在AstrBot容器和协议端容器挂载好需要进行操作的目录。
-- 安全（重要）：进行文件操作前务必三思！！！尤其是使用删删除功能时。
-
-- 指令调用，如下：
-
-```plaintext
-/发送 路径 - 发送指定路径的文件（绝对路径） 
-/上传 路径 - 上传文件到指定目录（绝对路径，暂不支持视频）
-/删除 路径 - 删除指定路径的文件（绝对路径） 
-/删除目录 路径 - 删除指定路径的目录（绝对路径） 
-/查看 路径 - 查看指定目录的文件和子目录（绝对路径） 
-/移动 源路径 目标路径 - 移动指定路径的文件或目录
-/复制 源路径 目标路径 - 复制指定路径的文件或目录
-/插件路径 - 获取插件基础路径（此插件的上上级目录）
-/文件帮助 - 显示本帮助信息（除此命令外，其余命令均默认开启管理员权限。）
+### 源群确认消息格式：
+```
+文件已转发到指定群聊
+群号：xxxxxxx
+触发人：xxxxxxx
+文件名：
+文件名1
+文件名2
+...
 ```
 
+## 安装方法
 
-## 🤝 可能用途
+1. 将插件文件夹放入AstrBot的 `data/plugins/` 目录
+2. 在AstrBot WebUI的插件管理处启用插件
+3. 点击"重载插件"使插件生效
 
+## 配置说明
 
-- [ ] 后续可能会尝试增加文件接收功能。
-- [ ] 用于在QQ上快速取出一些存在电脑中的文件。
-- [ ] 快捷删除一些因报错而无法在控制台上直接删除的插件。
-- [ ] 作为文件操作函数工具的补充（补充了删除和发送功能）。
-- [ ] 再次提醒（重要）：进行文件操作前务必三思！！！尤其是使用删删除功能时。
+插件默认将文件上传信息转发到群号 `1035079001`。
 
+### 配置文件
 
-## 👥 贡献指南
+插件支持通过 `config.yaml` 文件进行配置：
 
-- 🌟 Star 这个项目！（点右上角的星星，感谢支持！）
-- 🐛 提交 Issue 报告问题
-- 💡 提出新功能建议
-- 🔧 提交 Pull Request 改进代码
+```yaml
+# 目标转发群号
+target_group_id: "1035079001"
 
-## 📌 注意事项
+# 是否在源群发送确认消息
+send_confirm_message: true
 
-- 最后提醒（重要）：进行文件操作前务必三思！！！尤其是使用删删除功能时。
-- 本插件仅供学习交流，作者不承担任何责任，如有需要，可QQ联系:1436198704。
-- 其实本来只想写个文件发送的功能，但后来想着既然写都写了，就干脆添加了一些文件操作的内容。
+# 是否启用详细日志
+enable_debug_log: false
+```
+
+### 配置项说明
+
+- `target_group_id`: 目标转发群号，默认为 "1035079001"
+- `send_confirm_message`: 是否在源群发送确认消息，默认为 true
+- `enable_debug_log`: 是否启用详细日志，默认为 false
+
+### 修改配置
+
+1. 编辑 `config.yaml` 文件
+2. 保存文件
+3. 在AstrBot WebUI中重载插件
+
+## 注意事项
+
+- 插件只处理群聊中的文件上传事件
+- 私聊中的文件上传不会被处理
+- 确保机器人有权限在目标群发送消息
+- 确保机器人有权限读取源群的文件上传事件
+
+## 版本信息
+
+- 版本：1.0.0
+- 作者：Mcpol
+- 支持平台：所有AstrBot支持的平台 
