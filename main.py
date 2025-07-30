@@ -21,6 +21,7 @@ class FileSenderPlugin(Star):
         super().__init__(context)
         self.base_path = config.get('FileBasePath', '/default/path')  # 配置文件中的基础路径
         self.user_waiting = {}  # 等待上传文件的用户
+        self.context.send_message(MessageEventResult().message(f"文件发送插件已启用。当前目录：{self.base_path}"))
 
 
     # 根据路径发送文件
@@ -191,7 +192,8 @@ class FileSenderPlugin(Star):
         full_file_path = os.path.join(self.base_path, file_path, file_name)
 
     @register_event_message_type(EventMessageType.ALL)
-    async def on_message(self, event: AstrMessageEvent):
+    async def on_message(self, event: AstrMessageEvent, *args, **kwargs):
+        logger.info(f"on_message received args: {args}, kwargs: {kwargs}")
         for component in event.get_messages():
             if isinstance(component, File):
                 file_url = component.url
