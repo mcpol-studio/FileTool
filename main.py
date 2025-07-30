@@ -1,5 +1,5 @@
 from astrbot.api.message_components import *
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, EventMessageType
 from astrbot.api.star import Context, Star, register
 from astrbot.api import logger
 import os
@@ -35,7 +35,7 @@ class FileTool(Star):
             logger.error(f"下载文件异常: {e}")
             return None
 
-    @filter.message()
+    @filter.event_message_type(EventMessageType.FILE)
     async def handle_file_upload(self, event: AstrMessageEvent):
         """处理群文件上传事件"""
         try:
