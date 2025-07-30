@@ -1,7 +1,9 @@
 from astrbot.api.message_components import *
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
-from astrbot.api import AstrBotConfig
+from astrbot.api import AstrBotConfig, logger
 from astrbot.api.star import Context, Star, register
+from astrbot.core.message.components import File, Plain
+from astrbot.core.platform.message_type import MessageType
 import os
 import shutil
 import time
@@ -192,7 +194,51 @@ class FileSenderPlugin(Star):
             if isinstance(component, File):
                 file_url = component.url
                 file_name = component.name
-                if file_url and file_name:
+                if file_name:
+                    if file_url:
+                        logger.info(f"检测到文件，URL: {file_url}, 名称: {file_name}")
+                        source_path = file_url
+                    elif component.path:
+                        logger.info(f"检测到文件，本地路径: {component.path}, 名称: {file_name}")
+                        source_path = component.path
+                    else:
+                        logger.warning(f"文件 {file_name} 没有可用的 URL 或本地路径。")
+                        continue
+
+                    try:
+                        # 下载文件
+                        download_dir = os.path.join(self.base_path, "downloads")
+                        os.makedirs(download_dir, exist_ok=True)
+                        local_file_path = os.path.join(download_dir, file_name)
+
+                        if source_path.startswith("http"):
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(source_path) as response:
+                                    response.raise_for_status()
+                                    with open(local_file_path, 'wb') as f:
+                                        while True:
+                                            chunk = await response.content.read(8192)
+                                            if not chunk:
+                                                break
+                                            f.write(chunk)
+                            logger.info(f"文件 {file_name} 从 URL 下载完成。")
+                        elif os.path.exists(source_path):
+                            shutil.copy2(source_path, local_file_path)
+                            logger.info(f"文件 {file_name} 从本地路径复制完成。")
+                        else:
+                            yield event.plain_result(f"文件 {file_name} 无法下载或复制，源路径无效。")
+                            logger.error(f"文件 {file_name} 源路径无效: {source_path}")
+                            continue
+
+                        await self.context.send_message(
+                            session=f"qq:{MessageType.GROUP_MESSAGE.value}:{self.target_group_id}",
+                            message_chain=[Plain(text=f"收到文件：{file_name}，已下载到本地。正在转发..."), File(name=file_name, file=local_file_path)]
+                        )
+                        yield event.plain_result(f"文件 {file_name} 已转发到群聊 {self.target_group_id}。")
+                    except Exception as e:
+                        yield event.plain_result(f"处理文件 {file_name} 失败: {e}")
+                        logger.error(f"处理文件 {file_name} 失败: {e}")
+                break
                     try:
                         # 下载文件
                         download_dir = os.path.join(self.base_path, "downloads")
