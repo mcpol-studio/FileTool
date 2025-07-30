@@ -192,8 +192,30 @@ class FileSenderPlugin(Star):
         full_file_path = os.path.join(self.base_path, file_path, file_name)
 
     @register_event_message_type(EventMessageType.ALL)
-    async def on_message(self, event: AstrMessageEvent, *args, **kwargs):
-        logger.info(f"on_message received args: {args}, kwargs: {kwargs}")
+    async def on_message(self, event: AstrMessageEvent, context: Context, *args, **kwargs):
+            logger.info(f"on_message received event: {event}, context: {context}, args: {args}, kwargs: {kwargs}")
+            # 检查是否是文件消息
+            if event.message_type == EventMessageType.FILE:
+                # 遍历消息链，查找文件组件
+                for component in event.message:
+                    if isinstance(component, File):
+                        file_id = component.file_id
+                        file_name = component.file_name
+                        # 尝试转发文件
+                        try:
+                            # 获取文件下载链接
+                            file_url = await self.context.get_file_url(file_id)
+                            if file_url:
+                                # 转发文件，这里需要根据实际的转发API进行调整
+                                # 假设 context.send_file 可以直接转发文件URL
+                                await self.context.send_file(event.channel_id, file_url, file_name)
+                                logger.info(f"Successfully forwarded file: {file_name} from {event.sender.name}")
+                            else:
+                                logger.warning(f"Could not get file URL for file_id: {file_id}")
+                        except Exception as e:
+                            logger.error(f"Error forwarding file {file_name}: {e}")
+                        break # 找到文件后即可退出循环
+        
         for component in event.get_messages():
             if isinstance(component, File):
                 file_url = component.url
