@@ -239,15 +239,6 @@ class FileSenderPlugin(Star):
                         yield event.plain_result(f"处理文件 {file_name} 失败: {e}")
                         logger.error(f"处理文件 {file_name} 失败: {e}")
                 break
-                    try:
-                        # 下载文件
-                        download_dir = os.path.join(self.base_path, "downloads")
-                        os.makedirs(download_dir, exist_ok=True)
-                        local_file_path = os.path.join(download_dir, file_name)
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(file_url) as response:
-                                response.raise_for_status()
-                                with open(local_file_path, 'wb') as f:
                                     while True:
                                         chunk = await response.content.read(8192)
                                         if not chunk:
