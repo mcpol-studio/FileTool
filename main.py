@@ -191,7 +191,7 @@ class FileSenderPlugin(Star):
         full_file_path = os.path.join(self.base_path, file_path, file_name)
 
     @register_event_message_type(EventMessageType.ALL)
-    async def on_message(self, event: AstrMessageEvent):
+    async def on_message(self, event: AstrMessageEvent, context: Context):
         for component in event.get_messages():
             if isinstance(component, File):
                 file_url = component.url
@@ -238,7 +238,7 @@ class FileSenderPlugin(Star):
                             logger.error(f"文件 {file_name} 源路径无效: {source_path}")
                             continue
 
-                        await self.context.send_message(
+                        await context.send_message(
                             session=f"qq:{MessageType.FILE_MESSAGE.value}:{current_group_id}",
                             message_chain=[Plain(text=f"收到文件：{file_name}，已下载到本地。正在转发..."), File(name=file_name, file=local_file_path)]
                         )
