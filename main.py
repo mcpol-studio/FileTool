@@ -21,7 +21,7 @@ class FileSenderPlugin(Star):
         super().__init__(context)
         self.base_path = config.get('FileBasePath', '/default/path')  # 配置文件中的基础路径
         self.user_waiting = {}  # 等待上传文件的用户
-        self.target_group_id = '765665050'  # 目标群聊ID
+
 
     # 根据路径发送文件
     async def send_file(self, event: AstrMessageEvent, file_path: str):
@@ -208,6 +208,12 @@ class FileSenderPlugin(Star):
                         continue
 
                     try:
+                        # 获取当前消息的群组ID作为目标群组ID
+                        current_group_id = event.group_id
+                        if not current_group_id:
+                            logger.warning(f"无法获取当前消息的群组ID，跳过文件转发。")
+                            continue
+
                         # 下载文件
                         download_dir = os.path.join(self.base_path, "downloads")
                         os.makedirs(download_dir, exist_ok=True)
@@ -233,10 +239,10 @@ class FileSenderPlugin(Star):
                             continue
 
                         await self.context.send_message(
-                            session=f"qq:{MessageType.GROUP_MESSAGE.value}:{self.target_group_id}",
+                            session=f"qq:{MessageType.FILE_MESSAGE.value}:{current_group_id}",
                             message_chain=[Plain(text=f"收到文件：{file_name}，已下载到本地。正在转发..."), File(name=file_name, file=local_file_path)]
                         )
-                        yield event.plain_result(f"文件 {file_name} 已转发到群聊 {self.target_group_id}。")
+                        yield event.plain_result(f"文件 {file_name} 已转发到群聊 {current_group_id}。")
                     except Exception as e:
                         yield event.plain_result(f"处理文件 {file_name} 失败: {e}")
                         logger.error(f"处理文件 {file_name} 失败: {e}")
