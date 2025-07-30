@@ -248,17 +248,17 @@ class FileSenderPlugin(Star):
                                     if os.path.exists(local_file_path):
                                         logger.info(f"文件 {file_name} 已存在，跳过下载。")
                                         continue
-                                        # 异步下载文件
-                                        async with aiohttp.ClientSession() as session:
-                                            async with session.get(source_path) as response:
-                                                response.raise_for_status() # 检查HTTP请求是否成功
-                                                with open(local_file_path, 'wb') as f:
-                                                    while True:
-                                                        chunk = await response.content.read(8192)
-                                                        if not chunk:
-                                                            break
-                                                        f.write(chunk)
-                                        logger.info(f"文件 {file_name} 下载完成：{local_file_path}")
+                                    # 异步下载文件
+                                    async with aiohttp.ClientSession() as session:
+                                        async with session.get(source_path) as response:
+                                            response.raise_for_status() # 检查HTTP请求是否成功
+                                            with open(local_file_path, 'wb') as f:
+                                                while True:
+                                                    chunk = await response.content.read(8192)
+                                                    if not chunk:
+                                                        break
+                                                    f.write(chunk)
+                                    logger.info(f"文件 {file_name} 下载完成：{local_file_path}")
 
                                     # 转发文件
                                     # 假设 context.send_file 可以直接转发本地文件路径
@@ -271,32 +271,3 @@ class FileSenderPlugin(Star):
                                     if 'local_file_path' in locals() and os.path.exists(local_file_path):
                                         os.remove(local_file_path)
                                         logger.info(f"已删除未成功转发的文件：{local_file_path}")
-
-                        if source_path.startswith("http"):
-                            async with aiohttp.ClientSession() as session:
-                                async with session.get(source_path) as response:
-                                    response.raise_for_status()
-                                    with open(local_file_path, 'wb') as f:
-                                        while True:
-                                            chunk = await response.content.read(8192)
-                                            if not chunk:
-                                                break
-                                            f.write(chunk)
-                            logger.info(f"文件 {file_name} 从 URL 下载完成。")
-                        elif os.path.exists(source_path):
-                            shutil.copy2(source_path, local_file_path)
-                            logger.info(f"文件 {file_name} 从本地路径复制完成。")
-                        else:
-                            yield event.plain_result(f"文件 {file_name} 无法下载或复制，源路径无效。")
-                            logger.error(f"文件 {file_name} 源路径无效: {source_path}")
-                            continue
-
-                        await self.context.send_message(
-                            session=f"qq:{MessageType.FILE_MESSAGE.value}:{current_group_id}",
-                            message_chain=[Plain(text=f"收到文件：{file_name}，已下载到本地。正在转发..."), File(name=file_name, file=local_file_path)]
-                        )
-                        yield event.plain_result(f"文件 {file_name} 已转发到群聊 {current_group_id}。")
-                    except Exception as e:
-                        yield event.plain_result(f"处理文件 {file_name} 失败: {e}")
-                        logger.error(f"处理文件 {file_name} 失败: {e}")
-                break
